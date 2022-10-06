@@ -6,20 +6,45 @@
 
 		local version, build, date, tocversion = GetBuildInfo()
 
-		_detalhes.build_counter = 9824
-		_detalhes.alpha_build_counter = 9824 --if this is higher than the regular counter, use it instead
-		_detalhes.bcc_counter = 39
+		_detalhes.build_counter = 10033
+		_detalhes.alpha_build_counter = 10033 --if this is higher than the regular counter, use it instead
 		_detalhes.dont_open_news = true
 		_detalhes.game_version = version
-		_detalhes.userversion = version .. _detalhes.build_counter
+		_detalhes.userversion = version .. " " .. _detalhes.build_counter
 		_detalhes.realversion = 146 --core version, this is used to check API version for scripts and plugins (see alias below)
 		_detalhes.APIVersion = _detalhes.realversion --core version
 		_detalhes.version = _detalhes.userversion .. " (core " .. _detalhes.realversion .. ")" --simple stirng to show to players
+
+		_detalhes.acounter = 1 --in case of a second release with the same .build_counter
+		_detalhes.curseforgeVersion = GetAddOnMetadata("Details", "Version")
+
+		function _detalhes:GetCoreVersion()
+			return _detalhes.realversion
+		end
 
 		_detalhes.BFACORE = 131 --core version on BFA launch
 		_detalhes.SHADOWLANDSCORE = 143 --core version on Shadowlands launch
 
 		Details = _detalhes
+
+		local gameVersionPrefix = "Unknown Game Version - You're probably using a Details! not compatible with this version of the Game"
+		--these are the game versions currently compatible with this Details! versions
+		if (DetailsFramework.IsWotLKWow() or DetailsFramework.IsShadowlandsWow() or DetailsFramework.IsDragonflight()) then
+			gameVersionPrefix = "WSD"
+		end
+
+		Details.gameVersionPrefix = gameVersionPrefix
+
+		function Details.GetVersionString()
+			local alphaId = _detalhes.curseforgeVersion:match("%-(%d+)%-")
+			if (not alphaId) then
+				--this is a release version
+				alphaId = "R1"
+			else
+				alphaId = "A" .. alphaId
+			end
+			return Details.gameVersionPrefix .. Details.build_counter .. "." .. Details.acounter .. "." .. alphaId .. "(" .. Details.game_version .. ")"
+		end
 
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 --> initialization stuff
@@ -33,6 +58,29 @@ do
 	local Loc = _G.LibStub("AceLocale-3.0"):GetLocale( "Details" )
 
 	local news = {
+		{"v9.2.0.10001.146", "Aug 10th, 2022"},
+		"New feature: Arena DPS Bar, can be enabled at the Broadcaster Tools section, shows a bar in 'kamehameha' style showing which team is doing more damage in the latest 3 seconds.",
+		"/keystone now has more space for the dungeon name.",
+		"Revamp on the options section for Broadcaster tools.",
+		"Added 'Icon Size Offset' under Options > Bars: General, this new option allow to adjust the size of the class/spec icon shown on each bar.",
+		"Added 'Show Faction Icon' under Options > Bars: General, with this new option, you can choose to not show the faction icon, this icon is usually shown during battlegrounds.",
+		"Added 'Faction Icon Size Offset' under Options > Bars: General, new option to adjust the size of the faction icon.",
+		"Added 'Show Arena Role Icon' under Options > Bars: General, new option to hide or show the role icon of players during an arena match.",
+		"Added 'Clear On Start PVP' overall data option (Flamanis).",
+		"Added 'Arena Role Icon Size Offset' under Options > Bars: General, new option which allow to control the size of the arena role icon.",
+		"Added 'Level' option to Wallpapers, the wallpaper can now be placed on different levels which solves issues where the wallpaper is too low of certain configuration.",
+		"Streamer! plugin got updates, now it is more clear to pick which mode to use.",
+		"WotLK classic compatibility (Flamanis, Daniel Henry).",
+		"Fixed Grimrail Depot cannon and granades damage be added to players (dios-david).",
+		"Fixed the title bar text not showing when using the Custom Title Bar feature.",
+		"Fixed an issue with Dynamic Overall Damage printing errors into the chat window (Flamanis).",
+		"Role detection in classic versions got improvements.",
+		"New API: Details:GetTop5Actors(attributeId), return the top 5 actors from the selected attribute.",
+		"New API: Details:GetActorByRank(attributeId, rankIndex), return an actor from the selected attribute and rankIndex.",
+		"Major cleanup and code improvements on dropdowns for library Details! Framework.",
+		"Cleanup on NickTag library.",
+		"Removed LibGroupInSpecT, LibItemUpgradeInfo and LibCompress. These libraries got replaced by OpenRaidLib and LibDeflate.",
+
 		{"v9.2.0.9814.146", "May 15th, 2022"},
 		"Added slash command /keystone, this command show keystones of other users with addons using Open Raid library.",
 		"Added a second Title Bar (disabled by default), is recomended to make the Skin Color (under Window Body) full transparent while using it.",
@@ -325,6 +373,13 @@ do
 					available = {},
 				},
 			}
+
+		--make a color namespace
+		Details.Colors = {}
+		function Details.Colors.GetMenuTextColor()
+			return "orange"
+		end
+
 		--> armazena as fun��es para inicializa��o dos dados - Metatable functions
 			_detalhes.refresh = {}
 		--> armazena as fun��es para limpar e guardas os dados - Metatable functions
@@ -471,7 +526,19 @@ do
 			{Name = "On Spec Change", Desc = "Run code when the player has changed its specialization.", Value = 5, ProfileKey = "on_specchanged"},
 			{Name = "On Enter/Leave Group", Desc = "Run code when the player has entered or left a party or raid group.", Value = 6, ProfileKey = "on_groupchange"},
 		}
-		
+
+		--run a function without stopping the execution in case of an error
+		function Details.SafeRun(func, executionName, ...)
+			local runToCompletion, errorText = pcall(func, ...)
+			if (not runToCompletion) then
+				if (Details.debug) then
+					Details:Msg("Safe run failed:", executionName, errorText)
+				end
+				return false
+			end
+			return true
+		end
+
 		--> tooltip
 			_detalhes.tooltip_backdrop = {
 				bgFile = [[Interface\DialogFrame\UI-DialogBox-Background-Dark]], 
@@ -606,26 +673,56 @@ do
 			--> name to plugin object
 				_detalhes.StatusBar.NameTable = {}
 
-	--> constants
-		--[[global]] DETAILS_HEALTH_POTION_ID = 307192 -- spiritual healing potion
-		--[[global]] DETAILS_HEALTH_POTION2_ID = 359867 --cosmic healing potion
-		--[[global]] DETAILS_REJU_POTION_ID = 307194
-		--[[global]] DETAILS_MANA_POTION_ID = 307193
-		--[[global]] DETAILS_FOCUS_POTION_ID = 307161
-		--[[global]] DETAILS_HEALTHSTONE_ID = 6262
+		--> constants
+		if(DetailsFramework.IsWotLKWow()) then
+			--[[global]] DETAILS_HEALTH_POTION_ID = 33447 -- Runic Healing Potion
+			--[[global]] DETAILS_HEALTH_POTION2_ID = 41166 -- Runic Healing Injector
+			--[[global]] DETAILS_REJU_POTION_ID = 40087 -- Powerful Rejuvenation Potion
+			--[[global]] DETAILS_REJU_POTION2_ID = 40077 -- Crazy Alchemist's Potion
+			--[[global]] DETAILS_MANA_POTION_ID = 33448 -- Runic Mana Potion
+			--[[global]] DETAILS_MANA_POTION2_ID = 42545 -- Runic Mana Injector
+			--[[global]] DETAILS_FOCUS_POTION_ID = 307161
+			--[[global]] DETAILS_HEALTHSTONE_ID = 47875 --Warlock's Healthstone
+			--[[global]] DETAILS_HEALTHSTONE2_ID = 47876 --Warlock's Healthstone (1/2 Talent)
+			--[[global]] DETAILS_HEALTHSTONE3_ID = 47877 --Warlock's Healthstone (2/2 Talent)
+			
+			--[[global]] DETAILS_INT_POTION_ID = 40212 --Potion of Wild Magic
+			--[[global]] DETAILS_AGI_POTION_ID = 40211 --Potion of Speed
+			--[[global]] DETAILS_STR_POTION_ID = 307164
+			--[[global]] DETAILS_STAMINA_POTION_ID = 40093 --Indestructible Potion
+			--[[global]] DETAILS_HEALTH_POTION_LIST = {
+					[DETAILS_HEALTH_POTION_ID] = true, -- Runic Healing Potion
+					[DETAILS_HEALTH_POTION2_ID] = true, -- Runic Healing Injector
+					[DETAILS_HEALTHSTONE_ID] = true, --Warlock's Healthstone
+					[DETAILS_HEALTHSTONE2_ID] = true, --Warlock's Healthstone (1/2 Talent)
+					[DETAILS_HEALTHSTONE3_ID] = true, --Warlock's Healthstone (2/2 Talent)
+					[DETAILS_REJU_POTION_ID] = true, -- Powerful Rejuvenation Potion
+					[DETAILS_REJU_POTION2_ID] = true, -- Crazy Alchemist's Potion
+					[DETAILS_MANA_POTION_ID] = true, -- Runic Mana Potion
+					[DETAILS_MANA_POTION2_ID] = true, -- Runic Mana Injector
+				}
+				
+		else
+			--[[global]] DETAILS_HEALTH_POTION_ID = 307192 -- spiritual healing potion
+			--[[global]] DETAILS_HEALTH_POTION2_ID = 359867 --cosmic healing potion
+			--[[global]] DETAILS_REJU_POTION_ID = 307194
+			--[[global]] DETAILS_MANA_POTION_ID = 307193
+			--[[global]] DETAILS_FOCUS_POTION_ID = 307161
+			--[[global]] DETAILS_HEALTHSTONE_ID = 6262
 
-		--[[global]] DETAILS_INT_POTION_ID = 307162
-		--[[global]] DETAILS_AGI_POTION_ID = 307159
-		--[[global]] DETAILS_STR_POTION_ID = 307164
-		--[[global]] DETAILS_STAMINA_POTION_ID = 307163
-		--[[global]] DETAILS_HEALTH_POTION_LIST = {
-			[DETAILS_HEALTH_POTION_ID] = true, --Healing Potion
-			[DETAILS_HEALTHSTONE_ID] = true, --Warlock's Healthstone
-			[DETAILS_REJU_POTION_ID] = true, --Rejuvenation Potion
-			[DETAILS_MANA_POTION_ID] = true, --Mana Potion
-			[323436] = true, --Phial of Serenity (from Kyrians)
-			[DETAILS_HEALTH_POTION2_ID] = true,
-		}
+			--[[global]] DETAILS_INT_POTION_ID = 307162
+			--[[global]] DETAILS_AGI_POTION_ID = 307159
+			--[[global]] DETAILS_STR_POTION_ID = 307164
+			--[[global]] DETAILS_STAMINA_POTION_ID = 307163
+			--[[global]] DETAILS_HEALTH_POTION_LIST = {
+					[DETAILS_HEALTH_POTION_ID] = true, --Healing Potion
+					[DETAILS_HEALTHSTONE_ID] = true, --Warlock's Healthstone
+					[DETAILS_REJU_POTION_ID] = true, --Rejuvenation Potion
+					[DETAILS_MANA_POTION_ID] = true, --Mana Potion
+					[323436] = true, --Phial of Serenity (from Kyrians)
+					[DETAILS_HEALTH_POTION2_ID] = true,
+				}
+		end
 
 		--[[global]] DETAILS_MODE_GROUP = 2
 		--[[global]] DETAILS_MODE_ALL = 3
@@ -887,6 +984,10 @@ do
 			end
 		end
 
+		function dumpt(value)
+			return Details:Dump(value)
+		end
+
 	--> copies a full table
 		function Details.CopyTable(orig)
 			local orig_type = type(orig)
@@ -894,6 +995,7 @@ do
 			if orig_type == 'table' then
 				copy = {}
 				for orig_key, orig_value in next, orig, nil do
+					--print(orig_key, orig_value)
 					copy [Details.CopyTable (orig_key)] = Details.CopyTable (orig_value)
 				end
 			else
@@ -928,26 +1030,26 @@ do
 		
 	--> welcome
 		function _detalhes:WelcomeMsgLogon()
-		
 			_detalhes:Msg ("you can always reset the addon running the command |cFFFFFF00'/details reinstall'|r if it does fail to load after being updated.")
-			
+
 			function _detalhes:wipe_combat_after_failed_load()
 				_detalhes.tabela_historico = _detalhes.historico:NovoHistorico()
 				_detalhes.tabela_overall = _detalhes.combate:NovaTabela()
 				_detalhes.tabela_vigente = _detalhes.combate:NovaTabela (_, _detalhes.tabela_overall)
 				_detalhes.tabela_pets = _detalhes.container_pets:NovoContainer()
 				_detalhes:UpdateContainerCombatentes()
-				
+
 				_detalhes_database.tabela_overall = nil
 				_detalhes_database.tabela_historico = nil
-				
+
 				_detalhes:Msg ("seems failed to load, please type /reload to try again.")
 			end
-			_detalhes:ScheduleTimer ("wipe_combat_after_failed_load", 5)
-			
+
+			Details.Schedules.After(5, _detalhes.wipe_combat_after_failed_load)
 		end
-		_detalhes.failed_to_load = _detalhes:ScheduleTimer ("WelcomeMsgLogon", 20)
-	
+
+		Details.failed_to_load = C_Timer.NewTimer(1, function() Details.Schedules.NewTimer(20, _detalhes.WelcomeMsgLogon) end)
+
 	--> key binds
 		--> header
 			_G ["BINDING_HEADER_Details"] = "Details!"
@@ -985,4 +1087,16 @@ do
 			_G ["BINDING_NAME_DETAILS_BOOKMARK9"] = format (Loc ["STRING_KEYBIND_BOOKMARK_NUMBER"], 9)
 			_G ["BINDING_NAME_DETAILS_BOOKMARK10"] = format (Loc ["STRING_KEYBIND_BOOKMARK_NUMBER"], 10)
 			
+end
+
+if (select(4, GetBuildInfo()) >= 100000) then
+	local f = CreateFrame("frame")
+	f:RegisterEvent("ADDON_ACTION_FORBIDDEN")
+	f:SetScript("OnEvent", function()
+		local text = StaticPopup1 and StaticPopup1.text and StaticPopup1.text:GetText()
+		if (text and text:find("Details")) then
+			--fix false-positive taints that are being attributed to random addons
+			StaticPopup1.button2:Click()
+		end
+	end)
 end

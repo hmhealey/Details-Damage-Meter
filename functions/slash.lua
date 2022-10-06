@@ -11,6 +11,13 @@ local UnitGUID = UnitGUID
 local tonumber= tonumber 
 local LoggingCombat = LoggingCombat
 
+SLASH_DUMPTABLE1 = "/dumpt"
+function SlashCmdList.DUMPTABLE(msg, editbox)
+	local result = "return function() return " .. msg .. " end"
+	local extractValue = loadstring(result)
+	return Details:Dump(extractValue()())
+end
+
 SLASH_DETAILS1, SLASH_DETAILS2, SLASH_DETAILS3 = "/details", "/dt", "/de"
 
 function SlashCmdList.DETAILS (msg, editbox)
@@ -848,30 +855,6 @@ function SlashCmdList.DETAILS (msg, editbox)
 			_detalhes.id_frame.texto:HighlightText()
 		end
 		
-	--> debug
-	
-	elseif (msg == "auras") then
-		if (IsInRaid()) then
-			for raidIndex = 1, GetNumGroupMembers() do 
-				for buffIndex = 1, 41 do
-					local name, _, _, _, _, _, _, unitCaster, _, _, spellid  = UnitAura ("raid"..raidIndex, buffIndex, nil, "HELPFUL")
-					print (name, unitCaster, "==", "raid"..raidIndex)
-					if (name and unitCaster == "raid"..raidIndex) then
-						
-						local playerName, realmName = UnitName ("raid"..raidIndex)
-						if (realmName and realmName ~= "") then
-							playerName = playerName .. "-" .. realmName
-						end
-						
-						_detalhes.parser:add_buff_uptime (nil, GetTime(), UnitGUID ("raid"..raidIndex), playerName, 0x00000417, UnitGUID ("raid"..raidIndex), playerName, 0x00000417, spellid, name, in_or_out)
-						
-					else
-						--break
-					end
-				end
-			end
-		end
-		
 	elseif (command == "profile") then
 	
 		local profile = rest:match("^(%S*)%s*(.-)$")
@@ -880,6 +863,9 @@ function SlashCmdList.DETAILS (msg, editbox)
 		
 		_detalhes:ApplyProfile (profile, false)
 	
+	elseif (msg == "version") then
+		Details.ShowCopyValueFrame(Details.GetVersionString())
+
 	elseif (msg == "users" or msg == "version" or msg == "versioncheck") then
 		Details.SendHighFive()
 
@@ -984,6 +970,16 @@ function SlashCmdList.DETAILS (msg, editbox)
 		end
 
 	--> debug
+	elseif (command == "debugnet") then
+		if (_detalhes.debugnet) then
+			_detalhes.debugnet = false
+			print(Loc["STRING_DETAILS1"] .. "net diagnostic mode has been turned off.")
+			return
+		else
+			_detalhes.debugnet = true
+			print(Loc["STRING_DETAILS1"] .. "net diagnostic mode has been turned on.")
+		end
+
 	elseif (command == "debug") then
 		if (_detalhes.debug) then
 			_detalhes.debug = false
@@ -1168,8 +1164,6 @@ function SlashCmdList.DETAILS (msg, editbox)
 			["INVTYPE_RANGEDRIGHT"] = true,
 		}
 		
-		local ItemUpgradeInfo = LibStub ("LibItemUpgradeInfo-1.0")
-		
 		_detalhes:Msg ("======== Item Level Debug ========")
 		
 		for equip_id = 1, 17 do
@@ -1178,15 +1172,8 @@ function SlashCmdList.DETAILS (msg, editbox)
 				if (item) then
 					local _, _, itemRarity, iLevel, _, _, _, _, equipSlot = GetItemInfo (item)
 					if (iLevel) then
-						if (ItemUpgradeInfo) then
-							local ilvl = ItemUpgradeInfo:GetUpgradedItemLevel (item)
-							item_level = item_level + (ilvl or iLevel)
-							print (ilvl, item)
-						else
-							item_level = item_level + iLevel
-							print (iLevel, item)
-						end
-						
+						item_level = item_level + iLevel
+						print (iLevel, item)
 						--> 16 = main hand 17 = off hand
 						-->  if using a two-hand, ignore the off hand slot
 						if (equip_id == 16 and two_hand [equipSlot]) then
@@ -1559,6 +1546,8 @@ function SlashCmdList.DETAILS (msg, editbox)
 	--elseif (msg == "update") then
 	--	_detalhes:CopyPaste ([[https://www.wowinterface.com/downloads/info23056-DetailsDamageMeter8.07.3.5.html]])
 	
+	elseif (msg == "auras") then
+		Details.AuraTracker.Open()
 	
 	elseif (msg == "ec") then
 		if (rest and tonumber(rest)) then
@@ -1567,6 +1556,12 @@ function SlashCmdList.DETAILS (msg, editbox)
 			Details:Msg("combat erased.")
 		end
 		return
+
+	elseif (msg == "generatespelllist") then
+		Details.GenerateSpecSpellList()
+
+	elseif (msg == "survey") then
+		Details.Survey.OpenSurveyPanel()
 
 	elseif (msg == "share") then
 	
@@ -1684,37 +1679,14 @@ function SlashCmdList.DETAILS (msg, editbox)
 			
 		end
 
-		print("|", msg)
-		
-		print (" ")
-		--local v = _detalhes.game_version .. "." .. (_detalhes.build_counter >= _detalhes.alpha_build_counter and _detalhes.build_counter or _detalhes.alpha_build_counter)
-		--print (Loc ["STRING_DETAILS1"] .. "" .. v .. " [|cFFFFFF00CORE: " .. _detalhes.realversion .. "|r] " ..  Loc ["STRING_COMMAND_LIST"] .. ":")
-		
-		--print ("|cffffaeae/details|r |cffffff33" .. Loc ["STRING_SLASH_NEW"] .. "|r: " .. Loc ["STRING_SLASH_NEW_DESC"])
 		print ("|cffffaeae/details|r |cffffff33" .. Loc ["STRING_SLASH_SHOW"] .. " " .. Loc ["STRING_SLASH_HIDE"] .. " " .. Loc ["STRING_SLASH_TOGGLE"] .. "|r|cfffcffb0 <" .. Loc ["STRING_WINDOW_NUMBER"] .. ">|r: " .. Loc ["STRING_SLASH_SHOWHIDETOGGLE_DESC"])
-		--print ("|cffffaeae/details|r |cffffff33" .. Loc ["STRING_SLASH_ENABLE"] .. " " .. Loc ["STRING_SLASH_DISABLE"] .. "|r: " .. Loc ["STRING_SLASH_CAPTURE_DESC"])
 		print ("|cffffaeae/details|r |cffffff33" .. Loc ["STRING_SLASH_RESET"] .. "|r: " .. Loc ["STRING_SLASH_RESET_DESC"])
 		print ("|cffffaeae/details|r |cffffff33" .. Loc ["STRING_SLASH_OPTIONS"] .. "|r|cfffcffb0 <" .. Loc ["STRING_WINDOW_NUMBER"] .. ">|r: " .. Loc ["STRING_SLASH_OPTIONS_DESC"])
 		print ("|cffffaeae/details|r |cffffff33" .. "API" .. "|r: " .. Loc ["STRING_SLASH_API_DESC"])
-		--print ("|cffffaeae/details|r |cffffff33" .. Loc ["STRING_SLASH_CHANGES"] .. "|r: " .. Loc ["STRING_SLASH_CHANGES_DESC"])
-		--print ("|cffffaeae/details|r |cffffff33" .. Loc ["STRING_SLASH_WIPECONFIG"] .. "|r: " .. Loc ["STRING_SLASH_WIPECONFIG_DESC"])
 		print ("|cffffaeae/details|r |cffffff33" .. "me" .. "|r: open the player breakdown for you.") --localize-me
 		print ("|cffffaeae/details|r |cffffff33" .. "spells" .. "|r: list of spells already saw.") --localize-me
 
-		--print ("|cffffaeae/details " .. Loc ["STRING_SLASH_WORLDBOSS"] .. "|r: " .. Loc ["STRING_SLASH_WORLDBOSS_DESC"])
-		print (" ")
-
-		if (DetailsFramework.IsTBCWow()) then
-			--the burning crusade classic
-			local v = _detalhes.game_version .. "." .. (_detalhes.bcc_counter)
-			print (Loc ["STRING_DETAILS1"] .. "|cFFFFFF00DETAILS! VERSION|r: |cFFFFAA00BCC" .. _detalhes.bcc_counter)
-			print (Loc ["STRING_DETAILS1"] .. "|cFFFFFF00GAME VERSION|r: |cFFFFAA00" .. _detalhes.game_version)
-		else
-			--retail
-			local v = _detalhes.game_version .. "." .. (_detalhes.build_counter >= _detalhes.alpha_build_counter and _detalhes.build_counter or _detalhes.alpha_build_counter)
-			print (Loc ["STRING_DETAILS1"] .. "|cFFFFFF00DETAILS! VERSION|r: |cFFFFAA00R" .. (_detalhes.build_counter >= _detalhes.alpha_build_counter and _detalhes.build_counter or _detalhes.alpha_build_counter))
-			print (Loc ["STRING_DETAILS1"] .. "|cFFFFFF00GAME VERSION|r: |cFFFFAA00" .. _detalhes.game_version)
-		end
+		print("|cFFFFFF00DETAILS! VERSION|r:|cFFFFAA00" .. " " .. Details.GetVersionString())
 	end
 end
 
@@ -1961,6 +1933,8 @@ end
 
 if (WOW_PROJECT_ID == WOW_PROJECT_MAINLINE) then
 	SLASH_KEYSTONE1 = "/keystone"
+	SLASH_KEYSTONE2 = "/keys"
+	SLASH_KEYSTONE3 = "/key"
 
 	function SlashCmdList.KEYSTONE(msg, editbox)
 		local openRaidLib = LibStub:GetLibrary("LibOpenRaid-1.0")
@@ -1998,7 +1972,7 @@ if (WOW_PROJECT_ID == WOW_PROJECT_MAINLINE) then
 				local statusBar = DetailsFramework:CreateStatusBar(f)
 				statusBar.text = statusBar:CreateFontString(nil, "overlay", "GameFontNormal")
 				statusBar.text:SetPoint("left", statusBar, "left", 5, 0)
-				statusBar.text:SetText("From Details! Damage Meter | Built with Details! Framework | Data from Open Raid Library")
+				statusBar.text:SetText("By Terciob | From Details! Damage Meter|Built with Details! Framework | Data from Open Raid Library")
 				DetailsFramework:SetFontSize(statusBar.text, 11)
 				DetailsFramework:SetFontColor(statusBar.text, "gray")
 
@@ -2007,8 +1981,8 @@ if (WOW_PROJECT_ID == WOW_PROJECT_MAINLINE) then
 					{text = "Class", width = 40, canSort = true, dataType = "number", order = "DESC", offset = 0},
 					{text = "Player Name", width = 140, canSort = true, dataType = "string", order = "DESC", offset = 0},
 					{text = "Level", width = 60, canSort = true, dataType = "number", order = "DESC", offset = 0, selected = true},
-					{text = "Dungeon", width = 120, canSort = true, dataType = "string", order = "DESC", offset = 0},
-					{text = "Classic Dungeon", width = 120, canSort = true, dataType = "string", order = "DESC", offset = 0},
+					{text = "Dungeon", width = 240, canSort = true, dataType = "string", order = "DESC", offset = 0},
+					--{text = "Classic Dungeon", width = 120, canSort = true, dataType = "string", order = "DESC", offset = 0},
 					{text = "Mythic+ Rating", width = 100, canSort = true, dataType = "number", order = "DESC", offset = 0},
 				}
 
@@ -2068,7 +2042,7 @@ if (WOW_PROJECT_ID == WOW_PROJECT_MAINLINE) then
 							line.playerNameText.text = unitName
 							line.keystoneLevelText.text = level
 							line.dungeonNameText.text = mapName
-							DetailsFramework:TruncateText(line.dungeonNameText, 120)
+							DetailsFramework:TruncateText(line.dungeonNameText, 240)
 							line.classicDungeonNameText.text = mapNameChallenge or ""
 							DetailsFramework:TruncateText(line.classicDungeonNameText, 120)
 							line.inMyParty = inMyParty > 0
@@ -2181,7 +2155,7 @@ if (WOW_PROJECT_ID == WOW_PROJECT_MAINLINE) then
 					line:AddFrameToHeaderAlignment(playerNameText)
 					line:AddFrameToHeaderAlignment(keystoneLevelText)
 					line:AddFrameToHeaderAlignment(dungeonNameText)
-					line:AddFrameToHeaderAlignment(classicDungeonNameText)
+					--line:AddFrameToHeaderAlignment(classicDungeonNameText)
 					line:AddFrameToHeaderAlignment(ratingText)
 					
 					line:AlignWithHeader(f.Header, "left")

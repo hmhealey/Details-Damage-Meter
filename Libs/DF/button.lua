@@ -378,7 +378,7 @@ local ButtonMetaFunctions = _G[DF.GlobalWidgetControlNames ["button"]]
 		if (normal) then
 			self.button:SetNormalTexture (normal)
 		elseif (_type (normal) ~= "boolean") then
-			self.button:SetNormalTexture (nil)
+			self.button:SetNormalTexture ("")
 		end
 		
 		if (_type (highlight) == "boolean") then
@@ -386,7 +386,7 @@ local ButtonMetaFunctions = _G[DF.GlobalWidgetControlNames ["button"]]
 				self.button:SetHighlightTexture (normal, "ADD")
 			end
 		elseif (highlight == nil) then
-			self.button:SetHighlightTexture (nil)
+			self.button:SetHighlightTexture ("")
 		else
 			self.button:SetHighlightTexture (highlight, "ADD")
 		end
@@ -396,7 +396,7 @@ local ButtonMetaFunctions = _G[DF.GlobalWidgetControlNames ["button"]]
 				self.button:SetPushedTexture (normal)
 			end
 		elseif (pressed == nil) then
-			self.button:SetPushedTexture (nil)
+			self.button:SetPushedTexture ("")
 		else
 			self.button:SetPushedTexture (pressed, "ADD")
 		end
@@ -406,7 +406,7 @@ local ButtonMetaFunctions = _G[DF.GlobalWidgetControlNames ["button"]]
 				self.button:SetDisabledTexture (normal)
 			end
 		elseif (disabled == nil) then
-			self.button:SetDisabledTexture (nil)
+			self.button:SetDisabledTexture ("")
 		else
 			self.button:SetDisabledTexture (disabled, "ADD")
 		end
@@ -444,64 +444,80 @@ local ButtonMetaFunctions = _G[DF.GlobalWidgetControlNames ["button"]]
 	function ButtonMetaFunctions:SetBackdropBorderColor(...)
 		return self.button:SetBackdropBorderColor(...)
 	end
-	
-	function ButtonMetaFunctions:SetIcon (texture, width, height, layout, texcoord, overlay, textdistance, leftpadding, textheight, short_method)
+
+	function ButtonMetaFunctions:SetIcon(texture, width, height, layout, texcoord, overlay, textDistance, leftPadding, textHeight, shortMethod)
 		if (not self.icon) then
-			self.icon = self:CreateTexture (nil, "artwork")
-			self.icon:SetSize (self.height*0.8, self.height*0.8)
-			self.icon:SetPoint ("left", self.widget, "left", 4 + (leftpadding or 0), 0)
-			self.icon.leftpadding = leftpadding or 0
+			self.icon = self:CreateTexture(nil, "artwork")
+			self.icon:SetSize(self.height * 0.8, self.height * 0.8)
+			self.icon:SetPoint("left", self.widget, "left", 4 + (leftPadding or 0), 0)
+			self.icon.leftPadding = leftPadding or 0
 			self.widget.text:ClearAllPoints()
-			self.widget.text:SetPoint ("left", self.icon, "right", textdistance or 2, 0 + (textheight or 0))
+			self.widget.text:SetPoint ("left", self.icon, "right", textDistance or 2, 0 + (textHeight or 0))
 		end
-		
-		self.icon:SetTexture (texture)
-		self.icon:SetSize (width or self.height*0.8, height or self.height*0.8)
-		self.icon:SetDrawLayer (layout or "artwork")
-		if (texcoord) then
-			self.icon:SetTexCoord (unpack (texcoord))
-		else
-			self.icon:SetTexCoord (0, 1, 0, 1)
-		end
-		if (overlay) then
-			if (type (overlay) == "string") then
-				local r, g, b, a = DF:ParseColors (overlay)
-				self.icon:SetVertexColor (r, g, b, a)
+
+		if (type(texture) == "string") then
+			local isAtlas = C_Texture.GetAtlasInfo(texture)
+			if (isAtlas) then
+				self.icon:SetAtlas(texture)
+
+			elseif (DF:IsHtmlColor(texture)) then
+				local r, g, b, a = DF:ParseColors(texture)
+				self.icon:SetColorTexture(r, g, b, a)
 			else
-				self.icon:SetVertexColor (unpack (overlay))
+				self.icon:SetTexture(texture)
+			end
+		elseif (type(texture) == "table") then
+			local r, g, b, a = DF:ParseColors(texture)
+			self.icon:SetColorTexture(r, g, b, a)
+		else
+			self.icon:SetTexture(texture)
+		end
+
+		self.icon:SetSize(width or self.height * 0.8, height or self.height * 0.8)
+		self.icon:SetDrawLayer(layout or "artwork")
+
+		if (texcoord) then
+			self.icon:SetTexCoord(unpack(texcoord))
+		else
+			self.icon:SetTexCoord(0, 1, 0, 1)
+		end
+
+		if (overlay) then
+			if (type(overlay) == "string") then
+				local r, g, b, a = DF:ParseColors(overlay)
+				self.icon:SetVertexColor(r, g, b, a)
+			else
+				self.icon:SetVertexColor(unpack(overlay))
 			end
 		else
-			self.icon:SetVertexColor (1, 1, 1, 1)
+			self.icon:SetVertexColor(1, 1, 1, 1)
 		end
-		
-		local w = self.button:GetWidth()
-		local iconw = self.icon:GetWidth()
-		local text_width = self.button.text:GetStringWidth()
-		if (text_width > w-15-iconw) then
 
-			if (short_method == false) then
-			
-			elseif (not short_method) then
-				local new_width = text_width+15+iconw
-				self.button:SetWidth (new_width)
-				
-			elseif (short_method == 1) then
+		local buttonWidth = self.button:GetWidth()
+		local iconWidth = self.icon:GetWidth()
+		local textWidth = self.button.text:GetStringWidth()
+		if (textWidth > buttonWidth - 15 - iconWidth) then
+			if (shortMethod == false) then
+
+			elseif (not shortMethod) then
+				local new_width = textWidth + 15 + iconWidth
+				self.button:SetWidth(new_width)
+
+			elseif (shortMethod == 1) then
 				local loop = true
-				local textsize = 11
+				local textSize = 11
 				while (loop) do
-					if (text_width+15+iconw < w or textsize < 8) then
+					if (textWidth + 15 + iconWidth < buttonWidth or textSize < 8) then
 						loop = false
 						break
 					else
-						DF:SetFontSize (self.button.text, textsize)
-						text_width = self.button.text:GetStringWidth()
-						textsize = textsize - 1
+						DF:SetFontSize(self.button.text, textSize)
+						textWidth = self.button.text:GetStringWidth()
+						textSize = textSize - 1
 					end
 				end
-				
 			end
 		end
-		
 	end
 	
 -- frame stratas
@@ -544,10 +560,10 @@ local ButtonMetaFunctions = _G[DF.GlobalWidgetControlNames ["button"]]
 --> custom textures
 	function ButtonMetaFunctions:InstallCustomTexture (texture, rect, coords, use_split, side_textures, side_textures2)
 	
-		self.button:SetNormalTexture (nil)
-		self.button:SetPushedTexture (nil)
-		self.button:SetDisabledTexture (nil)
-		self.button:SetHighlightTexture (nil)
+		self.button:SetNormalTexture ("")
+		self.button:SetPushedTexture ("")
+		self.button:SetDisabledTexture ("")
+		self.button:SetHighlightTexture ("")
 
 		local button = self.button
 		
@@ -802,7 +818,7 @@ local ButtonMetaFunctions = _G[DF.GlobalWidgetControlNames ["button"]]
 			end
 		else
 			if (button.MyObject.icon) then
-				button.MyObject.icon:SetPoint ("left", button, "left", 7 + (button.MyObject.icon.leftpadding or 0), -2)
+				button.MyObject.icon:SetPoint ("left", button, "left", 5 + (button.MyObject.icon.leftpadding or 0), -1)
 			else
 				button.text:SetPoint ("center", button,"center", 1, -1)
 			end
@@ -927,75 +943,77 @@ local ButtonMetaFunctions = _G[DF.GlobalWidgetControlNames ["button"]]
 
 ------------------------------------------------------------------------------------------------------------
 
-function ButtonMetaFunctions:SetTemplate (template)
-	
-	if (type (template) == "string") then
-		template = DF:GetTemplate ("button", template)
+function ButtonMetaFunctions:SetTemplate(template)
+	if (type(template) == "string") then
+		template = DF:GetTemplate("button", template)
 	end
-	
+
 	if (not template) then
-		DF:Error ("template not found")
+		DF:Error("template not found")
 		return
 	end
-	
+
 	if (template.width) then
-		self:SetWidth (template.width)
+		self:SetWidth(template.width)
 	end
+
 	if (template.height) then
-		self:SetHeight (template.height)
+		self:SetHeight(template.height)
 	end
-	
+
 	if (template.backdrop) then
-		self:SetBackdrop (template.backdrop)
+		self:SetBackdrop(template.backdrop)
 	end
+
 	if (template.backdropcolor) then
-		local r, g, b, a = DF:ParseColors (template.backdropcolor)
-		self:SetBackdropColor (r, g, b, a)
+		local r, g, b, a = DF:ParseColors(template.backdropcolor)
+		self:SetBackdropColor(r, g, b, a)
 		self.onleave_backdrop = {r, g, b, a}
 	end
+
 	if (template.backdropbordercolor) then
-		local r, g, b, a = DF:ParseColors (template.backdropbordercolor)
-		self:SetBackdropBorderColor (r, g, b, a)
+		local r, g, b, a = DF:ParseColors(template.backdropbordercolor)
+		self:SetBackdropBorderColor(r, g, b, a)
 		self.onleave_backdrop_border_color = {r, g, b, a}
 	end
-	
+
 	if (template.onentercolor) then
-		local r, g, b, a = DF:ParseColors (template.onentercolor)
+		local r, g, b, a = DF:ParseColors(template.onentercolor)
 		self.onenter_backdrop = {r, g, b, a}
 	end
-	
+
 	if (template.onleavecolor) then
-		local r, g, b, a = DF:ParseColors (template.onleavecolor)
+		local r, g, b, a = DF:ParseColors(template.onleavecolor)
 		self.onleave_backdrop = {r, g, b, a}
 	end
-	
+
 	if (template.onenterbordercolor) then
-		local r, g, b, a = DF:ParseColors (template.onenterbordercolor)
+		local r, g, b, a = DF:ParseColors(template.onenterbordercolor)
 		self.onenter_backdrop_border_color = {r, g, b, a}
 	end
-	
+
 	if (template.onleavebordercolor) then
-		local r, g, b, a = DF:ParseColors (template.onleavebordercolor)
+		local r, g, b, a = DF:ParseColors(template.onleavebordercolor)
 		self.onleave_backdrop_border_color = {r, g, b, a}
 	end
-	
+
 	if (template.icon) then
 		local i = template.icon
-		self:SetIcon (i.texture, i.width, i.height, i.layout, i.texcoord, i.color, i.textdistance, i.leftpadding)
+		self:SetIcon(i.texture, i.width, i.height, i.layout, i.texcoord, i.color, i.textdistance, i.leftpadding)
 	end
-	
+
 	if (template.textsize) then
 		self.textsize = template.textsize
 	end
-	
+
 	if (template.textfont) then
 		self.textfont = template.textfont
 	end
-	
+
 	if (template.textcolor) then
 		self.textcolor = template.textcolor
 	end
-	
+
 	if (template.textalign) then
 		self.textalign = template.textalign
 	end
@@ -1004,182 +1022,179 @@ end
 ------------------------------------------------------------------------------------------------------------
 --> object constructor
 
-local build_button = function (self)
-	self:SetSize (100, 20)
-	
-	self.text = self:CreateFontString ("$parent_Text", "ARTWORK", "GameFontNormal")
-	self.text:SetJustifyH ("CENTER")
-	DF:SetFontSize (self.text, 10)
-	self.text:SetPoint ("CENTER", self, "CENTER", 0, 0)
-	
-	self.texture_disabled = self:CreateTexture ("$parent_TextureDisabled", "OVERLAY")
+local createButtonWidgets = function(self)
+	self:SetSize(100, 20)
+
+	self.text = self:CreateFontString("$parent_Text", "ARTWORK", "GameFontNormal")
+	self.text:SetJustifyH("CENTER")
+	DF:SetFontSize(self.text, 10)
+	self.text:SetPoint("CENTER", self, "CENTER", 0, 0)
+
+	self.texture_disabled = self:CreateTexture("$parent_TextureDisabled", "OVERLAY")
 	self.texture_disabled:SetAllPoints()
 	self.texture_disabled:Hide()
-	self.texture_disabled:SetTexture ("Interface\\Tooltips\\UI-Tooltip-Background")
-	
-	self:SetScript ("OnDisable", function (self)
+	self.texture_disabled:SetTexture("Interface\\Tooltips\\UI-Tooltip-Background")
+
+	self:SetScript("OnDisable", function(self)
 		self.texture_disabled:Show()
-		self.texture_disabled:SetVertexColor (0, 0, 0)
-		self.texture_disabled:SetAlpha (.5)
+		self.texture_disabled:SetVertexColor(0, 0, 0)
+		self.texture_disabled:SetAlpha(.5)
 	end)
-	
-	self:SetScript ("OnEnable", function (self)
+
+	self:SetScript("OnEnable", function(self)
 		self.texture_disabled:Hide()
 	end)
 end
 
-function DF:CreateButton (parent, func, w, h, text, param1, param2, texture, member, name, short_method, button_template, text_template)
-	return DF:NewButton (parent, parent, name, member, w, h, func, param1, param2, texture, text, short_method, button_template, text_template)
+function DF:CreateButton(parent, func, width, height, text, param1, param2, texture, member, name, shortMethod, buttonTemplate, textTemplate)
+	return DF:NewButton(parent, parent, name, member, width, height, func, param1, param2, texture, text, shortMethod, buttonTemplate, textTemplate)
 end
 
-function DF:NewButton (parent, container, name, member, w, h, func, param1, param2, texture, text, short_method, button_template, text_template)
-	
+function DF:NewButton(parent, container, name, member, width, height, func, param1, param2, texture, text, shortMethod, buttonTemplate, textTemplate)
 	if (not name) then
 		name = "DetailsFrameworkButtonNumber" .. DF.ButtonCounter
 		DF.ButtonCounter = DF.ButtonCounter + 1
-		
+
 	elseif (not parent) then
-		return error ("Details! FrameWork: parent not found.", 2)
+		return error("Details! FrameWork: parent not found.", 2)
 	end
+
 	if (not container) then
 		container = parent
 	end
-	
-	if (name:find ("$parent")) then
-		local parentName = DF.GetParentName (parent)
-		name = name:gsub ("$parent", parentName)
+
+	if (name:find("$parent")) then
+		local parentName = DF.GetParentName(parent)
+		name = name:gsub("$parent", parentName)
 	end
 
-	local ButtonObject = {type = "button", dframework = true}
-	
+	local buttonObject = {type = "button", dframework = true}
+
 	if (member) then
-		parent [member] = ButtonObject
-	end	
-	
+		parent[member] = buttonObject
+	end
+
 	if (parent.dframework) then
 		parent = parent.widget
 	end
 	if (container.dframework) then
 		container = container.widget
 	end
-	
-	--> default members:
-		ButtonObject.is_locked = true
-		ButtonObject.container = container
-		ButtonObject.options = {OnGrab = false}
 
-	ButtonObject.button = CreateFrame ("button", name, parent,"BackdropTemplate")
-	DF:Mixin (ButtonObject.button, DF.WidgetFunctions)
-	
-	build_button (ButtonObject.button)
-	
-	ButtonObject.widget = ButtonObject.button
-	ButtonObject.button:SetBackdropColor (0, 0, 0, 0.4)
-	ButtonObject.button:SetBackdropBorderColor (1, 1, 1, 1)
-	
+	--default members
+	buttonObject.is_locked = true
+	buttonObject.container = container
+	buttonObject.options = {OnGrab = false}
+
+	buttonObject.button = CreateFrame("button", name, parent, "BackdropTemplate")
+	DF:Mixin(buttonObject.button, DF.WidgetFunctions)
+
+	createButtonWidgets(buttonObject.button)
+
+	buttonObject.widget = buttonObject.button
+	buttonObject.button:SetBackdropColor(0, 0, 0, 0.4)
+	buttonObject.button:SetBackdropBorderColor(1, 1, 1, 1)
+
 	if (not APIButtonFunctions) then
 		APIButtonFunctions = true
-		local idx = getmetatable (ButtonObject.button).__index
-		for funcName, funcAddress in pairs (idx) do 
-			if (not ButtonMetaFunctions [funcName]) then
-				ButtonMetaFunctions [funcName] = function (object, ...)
-					local x = loadstring ( "return _G['"..object.button:GetName().."']:"..funcName.."(...)")
-					return x (...)
+		local idx = getmetatable(buttonObject.button).__index
+		for funcName, funcAddress in pairs(idx) do 
+			if (not ButtonMetaFunctions[funcName]) then
+				ButtonMetaFunctions[funcName] = function(object, ...)
+					local x = loadstring("return _G['"..object.button:GetName().."']:"..funcName.."(...)")
+					return x(...)
 				end
 			end
 		end
 	end
 
-	
-	ButtonObject.button:SetWidth (w or 100)
-	ButtonObject.button:SetHeight (h or 20)
-	ButtonObject.button.MyObject = ButtonObject
-	
-	ButtonObject.text_overlay = _G [name .. "_Text"]
-	ButtonObject.disabled_overlay = _G [name .. "_TextureDisabled"]
-	
-	ButtonObject.button:SetNormalTexture (texture)
-	ButtonObject.button:SetPushedTexture (texture)
-	ButtonObject.button:SetDisabledTexture (texture)
-	ButtonObject.button:SetHighlightTexture (texture, "ADD")
-	
-	ButtonObject.button.text:SetText (text)
-	ButtonObject.button.text:SetPoint ("center", ButtonObject.button, "center")
+	buttonObject.button:SetWidth(width or 100)
+	buttonObject.button:SetHeight(height or 20)
+	buttonObject.button.MyObject = buttonObject
 
-	local text_width = ButtonObject.button.text:GetStringWidth()
-	if (text_width > w-15 and ButtonObject.button.text:GetText() ~= "") then
-		if (short_method == false) then --> if is false, do not use auto resize
+	buttonObject.text_overlay = _G[name .. "_Text"]
+	buttonObject.disabled_overlay = _G[name .. "_TextureDisabled"]
+
+	texture = texture or ""
+	buttonObject.button:SetNormalTexture(texture)
+	buttonObject.button:SetPushedTexture(texture)
+	buttonObject.button:SetDisabledTexture(texture)
+	buttonObject.button:SetHighlightTexture(texture, "ADD")
+
+	buttonObject.button.text:SetText(text or "")
+	buttonObject.button.text:SetPoint("center", buttonObject.button, "center")
+
+	local textWidth = buttonObject.button.text:GetStringWidth()
+	if (textWidth > width - 15 and buttonObject.button.text:GetText() ~= "") then
+		if (shortMethod == false) then --> if is false, do not use auto resize
 			--do nothing
-		elseif (not short_method) then --> if the value is omitted, use the default resize
-			local new_width = text_width+15
-			ButtonObject.button:SetWidth (new_width)
-			
-		elseif (short_method == 1) then
+		elseif (not shortMethod) then --> if the value is omitted, use the default resize
+			local new_width = textWidth + 15
+			buttonObject.button:SetWidth(new_width)
+
+		elseif (shortMethod == 1) then
 			local loop = true
 			local textsize = 11
 			while (loop) do
-				if (text_width+15 < w or textsize < 8) then
+				if (textWidth + 15 < width or textsize < 8) then
 					loop = false
 					break
 				else
-					DF:SetFontSize (ButtonObject.button.text, textsize)
-					text_width = ButtonObject.button.text:GetStringWidth()
+					DF:SetFontSize(buttonObject.button.text, textsize)
+					textWidth = buttonObject.button.text:GetStringWidth()
 					textsize = textsize - 1
 				end
 			end
-			
-		elseif (short_method == 2) then
-			
+		elseif (shortMethod == 2) then
+
 		end
 	end
-	
-	ButtonObject.func = func or cleanfunction
-	ButtonObject.funcright = cleanfunction
-	ButtonObject.param1 = param1
-	ButtonObject.param2 = param2
-	
-	ButtonObject.short_method = short_method
-	
-	if (text_template) then
-		if (text_template.size) then
-			DF:SetFontSize (ButtonObject.button.text, text_template.size)
+
+	buttonObject.func = func or cleanfunction
+	buttonObject.funcright = cleanfunction
+	buttonObject.param1 = param1
+	buttonObject.param2 = param2
+	buttonObject.short_method = shortMethod
+
+	if (textTemplate) then
+		if (textTemplate.size) then
+			DF:SetFontSize(buttonObject.button.text, textTemplate.size)
 		end
-		if (text_template.color) then
-			local r, g, b, a = DF:ParseColors (text_template.color)
-			ButtonObject.button.text:SetTextColor (r, g, b, a)
+		if (textTemplate.color) then
+			local r, g, b, a = DF:ParseColors(textTemplate.color)
+			buttonObject.button.text:SetTextColor(r, g, b, a)
 		end
-		if (text_template.font) then
-			local SharedMedia = LibStub:GetLibrary ("LibSharedMedia-3.0")
-			local font = SharedMedia:Fetch ("font", text_template.font)
-			DF:SetFontFace (ButtonObject.button.text, font)
+		if (textTemplate.font) then
+			local SharedMedia = LibStub:GetLibrary("LibSharedMedia-3.0")
+			local font = SharedMedia:Fetch("font", textTemplate.font)
+			DF:SetFontFace(buttonObject.button.text, font)
 		end
 	end
-	
-	--> hooks
-		ButtonObject.HookList = {
-			OnEnter = {},
-			OnLeave = {},
-			OnHide = {},
-			OnShow = {},
-			OnMouseDown = {},
-			OnMouseUp = {},
-		}
-	
-		ButtonObject.button:SetScript ("OnEnter", OnEnter)
-		ButtonObject.button:SetScript ("OnLeave", OnLeave)
-		ButtonObject.button:SetScript ("OnHide", OnHide)
-		ButtonObject.button:SetScript ("OnShow", OnShow)
-		ButtonObject.button:SetScript ("OnMouseDown", OnMouseDown)
-		ButtonObject.button:SetScript ("OnMouseUp", OnMouseUp)
-		
-	_setmetatable (ButtonObject, ButtonMetaFunctions)
-	
-	if (button_template) then
-		ButtonObject:SetTemplate (button_template)
+
+	--hooks
+	buttonObject.HookList = {
+		OnEnter = {},
+		OnLeave = {},
+		OnHide = {},
+		OnShow = {},
+		OnMouseDown = {},
+		OnMouseUp = {},
+	}
+
+	buttonObject.button:SetScript("OnEnter", OnEnter)
+	buttonObject.button:SetScript("OnLeave", OnLeave)
+	buttonObject.button:SetScript("OnHide", OnHide)
+	buttonObject.button:SetScript("OnShow", OnShow)
+	buttonObject.button:SetScript("OnMouseDown", OnMouseDown)
+	buttonObject.button:SetScript("OnMouseUp", OnMouseUp)
+
+	setmetatable(buttonObject, ButtonMetaFunctions)
+
+	if (buttonTemplate) then
+		buttonObject:SetTemplate(buttonTemplate)
 	end
-	
-	return ButtonObject
-	
+
+	return buttonObject
 end
 
 local pickcolor_callback = function (self, r, g, b, a, button)
@@ -1200,8 +1215,8 @@ end
 local color_button_height = 16
 local color_button_width = 16
 
-local set_colorpick_color = function (button, r, g, b, a)
-	a = a or 1
+local setColorPickColor = function (button, r, g, b, a)
+	r, g, b, a = DF:ParseColors(r, g, b, a)
 	button.color_texture:SetVertexColor (r, g, b, a)
 end
 
@@ -1209,20 +1224,24 @@ local colorpick_cancel = function (self)
 	ColorPickerFrame:Hide()
 end
 
+local getColorPickColor = function(self)
+	return self.color_texture:GetVertexColor()
+end
+
 function DF:CreateColorPickButton (parent, name, member, callback, alpha, button_template)
 	return DF:NewColorPickButton (parent, name, member, callback, alpha, button_template)
 end
 
 function DF:NewColorPickButton (parent, name, member, callback, alpha, button_template)
-
 	--button
 	local button = DF:NewButton (parent, _, name, member, color_button_width, color_button_height, pickcolor, alpha, "param2", nil, nil, nil, button_template)
 	button.color_callback = callback
 	button.Cancel = colorpick_cancel
-	button.SetColor = set_colorpick_color
-	
+	button.SetColor = setColorPickColor
+	button.GetColor = getColorPickColor
+
 	button.HookList.OnColorChanged = {}
-	
+
 	if (not button_template) then
 		button:InstallCustomTexture()
 		button:SetBackdrop ({edgeFile = [[Interface\Tooltips\UI-Tooltip-Border]], edgeSize = 6,
@@ -1242,7 +1261,6 @@ function DF:NewColorPickButton (parent, name, member, callback, alpha, button_te
 	img:SetPoint ("topleft", button.widget, "topleft", 0, 0)
 	img:SetPoint ("bottomright", button.widget, "bottomright", 0, 0)
 	img:SetDrawLayer ("background", 3)
-	
+
 	return button
-	
 end

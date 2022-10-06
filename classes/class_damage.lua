@@ -2527,6 +2527,11 @@ local actor_class_color_r, actor_class_color_g, actor_class_color_b
 	perSecondText = perSecondText or ""
 	percentText = percentText or ""
 
+--		local actorSerial = thisLine:GetActor().serial
+--		local currentDps = Details.CurrentDps.GetCurrentDps(actorSerial) or perSecondText
+--		perSecondText = currentDps
+--	end
+
 	--check if the instance is showing total, dps and percent
 	local instanceSettings = instance.row_info
 	if (not instanceSettings.textR_show_data[3]) then --percent text disabled on options panel
@@ -2914,11 +2919,12 @@ local InBarIconPadding = 6
 
 	if (enemy) then
 		if (arena_enemy) then
-			if (Details.show_arena_role_icon) then
+			if (instance.row_info.show_arena_role_icon) then
 				--> show arena role icon
-				local leftText = bar_number .. "|TInterface\\LFGFRAME\\UI-LFG-ICON-ROLES:" .. (instance.row_info.height - InBarIconPadding)..":"..(instance.row_info.height - InBarIconPadding) .. ":0:0:256:256:" .. Details.role_texcoord [self.role or "NONE"] .. "|t " .. self.displayName
+				local sizeOffset = instance.row_info.arena_role_icon_size_offset
+				local leftText = bar_number .. "|TInterface\\LFGFRAME\\UI-LFG-ICON-ROLES:" .. (instance.row_info.height + sizeOffset)..":"..(instance.row_info.height + sizeOffset) .. ":0:0:256:256:" .. Details.role_texcoord [self.role or "NONE"] .. "|t " .. self.displayName
 				if (UsingCustomLeftText) then
-					bar.lineText1:SetText (_string_replace (instance.row_info.textL_custom_text, bar.colocacao, self.displayName, "|TInterface\\LFGFRAME\\UI-LFG-ICON-ROLES:" .. (instance.row_info.height - InBarIconPadding)..":"..(instance.row_info.height - InBarIconPadding) .. ":0:0:256:256:" .. Details.role_texcoord [self.role or "NONE"] .. "|t ", self, instance.showing, instance, leftText))
+					bar.lineText1:SetText (_string_replace (instance.row_info.textL_custom_text, bar.colocacao, self.displayName, "|TInterface\\LFGFRAME\\UI-LFG-ICON-ROLES:" .. (instance.row_info.height + sizeOffset)..":"..(instance.row_info.height + sizeOffset) .. ":0:0:256:256:" .. Details.role_texcoord [self.role or "NONE"] .. "|t ", self, instance.showing, instance, leftText))
 				else
 					bar.lineText1:SetText (leftText)
 				end
@@ -2932,27 +2938,39 @@ local InBarIconPadding = 6
 				end
 			end
 		else
-			if (Details.faction_against == "Horde") then
-				local leftText = bar_number .. "|TInterface\\AddOns\\Details\\images\\icones_barra:" .. (instance.row_info.height - InBarIconPadding)..":"..(instance.row_info.height - InBarIconPadding) .. ":0:0:256:32:0:32:0:32|t"..self.displayName
-				if (UsingCustomLeftText) then
-					bar.lineText1:SetText (_string_replace (instance.row_info.textL_custom_text, bar.colocacao, self.displayName, "|TInterface\\AddOns\\Details\\images\\icones_barra:" .. (instance.row_info.height - InBarIconPadding)..":"..(instance.row_info.height - InBarIconPadding) .. ":0:0:256:32:0:32:0:32|t", self, instance.showing, instance, leftText))
-				else
-					bar.lineText1:SetText (leftText) --seta o texto da esqueda -- HORDA
+			if (instance.row_info.show_faction_icon) then
+				local sizeOffset = instance.row_info.faction_icon_size_offset
+				if (Details.faction_against == "Horde") then
+					local leftText = bar_number .. "|TInterface\\AddOns\\Details\\images\\icones_barra:" .. (instance.row_info.height + sizeOffset)..":"..(instance.row_info.height + sizeOffset) .. ":0:0:256:32:0:32:0:32|t"..self.displayName
+					if (UsingCustomLeftText) then
+						bar.lineText1:SetText (_string_replace (instance.row_info.textL_custom_text, bar.colocacao, self.displayName, "|TInterface\\AddOns\\Details\\images\\icones_barra:" .. (instance.row_info.height + sizeOffset)..":"..(instance.row_info.height + sizeOffset) .. ":0:0:256:32:0:32:0:32|t", self, instance.showing, instance, leftText))
+					else
+						bar.lineText1:SetText (leftText) --seta o texto da esqueda -- HORDA
+					end
+				else --alliance
+					local leftText = bar_number .. "|TInterface\\AddOns\\Details\\images\\icones_barra:" .. (instance.row_info.height + sizeOffset)..":"..(instance.row_info.height + sizeOffset) .. ":0:0:256:32:32:64:0:32|t"..self.displayName
+					if (UsingCustomLeftText) then
+						bar.lineText1:SetText (_string_replace (instance.row_info.textL_custom_text, bar.colocacao, self.displayName, "|TInterface\\AddOns\\Details\\images\\icones_barra:" .. (instance.row_info.height + sizeOffset)..":"..(instance.row_info.height + sizeOffset) .. ":0:0:256:32:32:64:0:32|t", self, instance.showing, instance, leftText))
+					else
+						bar.lineText1:SetText (leftText) --seta o texto da esqueda -- ALLY
+					end
 				end
-			else --alliance
-				local leftText = bar_number .. "|TInterface\\AddOns\\Details\\images\\icones_barra:" .. (instance.row_info.height - InBarIconPadding)..":"..(instance.row_info.height - InBarIconPadding) .. ":0:0:256:32:32:64:0:32|t"..self.displayName
+			else
+				--don't show faction icon
+				local leftText = bar_number .. self.displayName
 				if (UsingCustomLeftText) then
-					bar.lineText1:SetText (_string_replace (instance.row_info.textL_custom_text, bar.colocacao, self.displayName, "|TInterface\\AddOns\\Details\\images\\icones_barra:" .. (instance.row_info.height - InBarIconPadding)..":"..(instance.row_info.height - InBarIconPadding) .. ":0:0:256:32:32:64:0:32|t", self, instance.showing, instance, leftText))
+					bar.lineText1:SetText (_string_replace (instance.row_info.textL_custom_text, bar.colocacao, self.displayName, " ", self, instance.showing, instance, leftText))
 				else
-					bar.lineText1:SetText (leftText) --seta o texto da esqueda -- ALLY
+					bar.lineText1:SetText (leftText)
 				end
 			end
 		end
 	else
-		if (arena_ally and Details.show_arena_role_icon) then
-			local leftText = bar_number .. "|TInterface\\LFGFRAME\\UI-LFG-ICON-ROLES:" .. (instance.row_info.height - InBarIconPadding)..":"..(instance.row_info.height - InBarIconPadding) .. ":0:0:256:256:" .. Details.role_texcoord [self.role or "NONE"] .. "|t " .. self.displayName
+		if (arena_ally and instance.row_info.show_arena_role_icon) then
+			local sizeOffset = instance.row_info.arena_role_icon_size_offset
+			local leftText = bar_number .. "|TInterface\\LFGFRAME\\UI-LFG-ICON-ROLES:" .. (instance.row_info.height + sizeOffset)..":"..(instance.row_info.height + sizeOffset) .. ":0:0:256:256:" .. Details.role_texcoord [self.role or "NONE"] .. "|t " .. self.displayName
 			if (UsingCustomLeftText) then
-				bar.lineText1:SetText (_string_replace (instance.row_info.textL_custom_text, bar.colocacao, self.displayName, "|TInterface\\LFGFRAME\\UI-LFG-ICON-ROLES:" .. (instance.row_info.height - InBarIconPadding)..":"..(instance.row_info.height - InBarIconPadding) .. ":0:0:256:256:" .. Details.role_texcoord [self.role or "NONE"] .. "|t ", self, instance.showing, instance, leftText))
+				bar.lineText1:SetText (_string_replace (instance.row_info.textL_custom_text, bar.colocacao, self.displayName, "|TInterface\\LFGFRAME\\UI-LFG-ICON-ROLES:" .. (instance.row_info.height + sizeOffset)..":"..(instance.row_info.height + sizeOffset) .. ":0:0:256:256:" .. Details.role_texcoord [self.role or "NONE"] .. "|t ", self, instance.showing, instance, leftText))
 			else
 				bar.lineText1:SetText (leftText)
 			end
@@ -3004,6 +3022,7 @@ end
 	end
 end 
 
+--@self: actor object
 --[[ exported]] function Details:SetClassIcon (texture, instance, classe) --self is the actorObject
 
 
@@ -3011,6 +3030,12 @@ end
 	if (Details.immersion_unit_special_icons) then
 		customIcon = Details.Immersion.GetIcon(self.aID)
 	end
+
+	--set the size offset of the icon
+	local iconSizeOffset = instance.row_info.icon_size_offset
+	local iconSize = instance.row_info.height
+	local newIconSize = iconSize + iconSizeOffset
+	texture:SetSize(newIconSize, newIconSize)
 
 	if (customIcon) then
 		texture:SetTexture(customIcon[1])
@@ -4047,7 +4072,7 @@ function atributo_damage:MontaInfoFriendlyFire()
 		if (Details.class_coords [classe]) then
 			barra.icone:SetTexCoord (_unpack (Details.class_coords [classe]))
 		else
-			barra.icone:SetTexture (nil)
+			barra.icone:SetTexture ("")
 		end
 
 		local color = Details.class_colors [classe]
@@ -4169,6 +4194,7 @@ end
 	if (index == 1) then
 		row.textura:SetValue (100)
 	else
+		max = math.max(max, 0.001)
 		row.textura:SetValue (value/max*100)
 	end
 	
@@ -4949,7 +4975,7 @@ function atributo_damage:MontaDetalhesDamageDone (spellid, barra, instancia)
 		if (normal_hits > 0) then
 			local normal_dmg = esta_magia.n_dmg
 			local media_normal = normal_dmg/normal_hits
-			local T = (meu_tempo*normal_dmg)/esta_magia.total
+			local T = (meu_tempo*normal_dmg)/ max(esta_magia.total, 0.001)
 			local P = media/media_normal*100
 			T = P*T/100
 
@@ -4964,7 +4990,7 @@ function atributo_damage:MontaDetalhesDamageDone (spellid, barra, instancia)
 			t1[5] = Loc ["STRING_MAXIMUM_SHORT"] .. ": " .. Details:comma_value (esta_magia.n_max)
 			t1[6] = Loc ["STRING_AVERAGE"] .. ": " .. Details:comma_value (media_normal)
 			t1[7] = Loc ["STRING_DPS"] .. ": " .. Details:comma_value (normal_dmg/T)
-			t1[8] = normal_hits .. " [|cFFC0C0C0" .. _cstr ("%.1f", normal_hits/total_hits*100) .. "%|r]"
+			t1[8] = normal_hits .. " [|cFFC0C0C0" .. _cstr ("%.1f", normal_hits/max(total_hits, 0.0001)*100) .. "%|r]"
 			
 		end
 
@@ -4972,7 +4998,7 @@ function atributo_damage:MontaDetalhesDamageDone (spellid, barra, instancia)
 		if (esta_magia.c_amt > 0) then	
 			local media_critico = esta_magia.c_dmg/esta_magia.c_amt
 			local T = (meu_tempo*esta_magia.c_dmg)/esta_magia.total
-			local P = media/media_critico*100
+			local P = media/max(media_critico, 0.0001)*100
 			T = P*T/100
 			local crit_dps = esta_magia.c_dmg/T
 			if (not crit_dps) then

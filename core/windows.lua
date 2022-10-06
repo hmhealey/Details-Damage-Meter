@@ -1221,12 +1221,13 @@
 	f.logo:SetPoint ("top", f, "top", 25, 56)
 	f.logo:SetTexture ([[Interface\AddOns\Details\images\logotipo]])
 	f.logo:SetSize (256, 128)
-	InterfaceOptions_AddCategory (f)
+	--InterfaceOptions_AddCategory (f)
 	
 	--> open options panel
-	f.options_button = CreateFrame ("button", nil, f, "OptionsButtonTemplate")
+	f.options_button = CreateFrame ("button", nil, f)
 	f.options_button:SetText (Loc ["STRING_INTERFACE_OPENOPTIONS"])
 	f.options_button:SetPoint ("topleft", f, "topleft", 10, -100)
+	f.options_button:SetHeight (170)
 	f.options_button:SetWidth (170)
 	f.options_button:SetScript ("OnClick", function (self)
 		local lower_instance = _detalhes:GetLowerInstanceNumber()
@@ -1248,7 +1249,7 @@
 		_detalhes:OpenOptionsWindow (_detalhes:GetInstance (lower_instance))
 	end)
 	--> create new window
-	f.new_window_button = CreateFrame ("button", nil, f, "OptionsButtonTemplate")
+	f.new_window_button = CreateFrame ("button", nil, f)
 	f.new_window_button:SetText (Loc ["STRING_MINIMAPMENU_NEWWINDOW"])
 	f.new_window_button:SetPoint ("topleft", f, "topleft", 10, -125)
 	f.new_window_button:SetWidth (170)
@@ -1266,9 +1267,9 @@
 			tinsert (UISpecialFrames, "DetailsUpdateDialog")
 			updatewindow_frame:SetPoint ("center", UIParent, "center")
 			updatewindow_frame:SetSize (512, 200)
-			updatewindow_frame.portrait:SetTexture ([[Interface\CHARACTERFRAME\TEMPORARYPORTRAIT-FEMALE-GNOME]])
+			--updatewindow_frame.portrait:SetTexture ([[Interface\CHARACTERFRAME\TEMPORARYPORTRAIT-FEMALE-GNOME]])
 			
-			updatewindow_frame.TitleText:SetText ("A New Version Is Available!")
+			--updatewindow_frame.TitleText:SetText ("A New Version Is Available!") --10.0 fuck
 
 			updatewindow_frame.midtext = updatewindow_frame:CreateFontString (nil, "artwork", "GameFontNormal")
 			updatewindow_frame.midtext:SetText ("Good news everyone!\nA new version has been forged and is waiting to be looted.")
@@ -1299,7 +1300,7 @@
 			end)
 			editbox.text = "http://www.curse.com/addons/wow/details"
 			
-			updatewindow_frame.close = CreateFrame ("Button", "DetailsUpdateDialogCloseButton", updatewindow_frame, "OptionsButtonTemplate")
+			updatewindow_frame.close = CreateFrame ("Button", "DetailsUpdateDialogCloseButton", updatewindow_frame)
 			updatewindow_frame.close:SetPoint ("bottomleft", updatewindow_frame, "bottomleft", 8, 4)
 			updatewindow_frame.close:SetText ("Close")
 			
@@ -1380,7 +1381,7 @@
 						end
 
 					elseif (button == "RightButton") then
-					
+						--minimap menu
 						GameTooltip:Hide()
 						local GameCooltip = GameCooltip
 						
@@ -1599,7 +1600,7 @@ function Details:LoadFramesForBroadcastTools()
 		end
 	
 	--> current dps
-		local bIsEnabled = _detalhes.current_dps_meter.enabled and (_detalhes.current_dps_meter.arena_enabled or _detalhes.current_dps_meter.mythic_dungeon_enabled)
+		local bIsEnabled = _detalhes.realtime_dps_meter.enabled and (_detalhes.realtime_dps_meter.arena_enabled or _detalhes.realtime_dps_meter.mythic_dungeon_enabled)
 		
 		--> if enabled and not loaded, load it
 		if (bIsEnabled and not _detalhes.Broadcaster_CurrentDpsLoaded) then
@@ -1608,7 +1609,7 @@ function Details:LoadFramesForBroadcastTools()
 		
 		--> if enabled, check if can show
 		if (bIsEnabled and _detalhes.Broadcaster_CurrentDpsLoaded) then
-			if (_detalhes.current_dps_meter.mythic_dungeon_enabled) then
+			if (_detalhes.realtime_dps_meter.mythic_dungeon_enabled) then
 				local zoneName, instanceType, difficultyID, difficultyName, maxPlayers, dynamicDifficulty, isDynamic, instanceMapID, instanceGroupSize = GetInstanceInfo()
 				if (difficultyID == 8) then
 					--> player is inside a mythic dungeon
@@ -1616,7 +1617,7 @@ function Details:LoadFramesForBroadcastTools()
 				end
 			end
 			
-			if (_detalhes.current_dps_meter.arena_enabled) then	
+			if (_detalhes.realtime_dps_meter.arena_enabled) then	
 				local zoneName, instanceType, difficultyID, difficultyName, maxPlayers, dynamicDifficulty, isDynamic, instanceMapID, instanceGroupSize = GetInstanceInfo()
 				if (instanceType == "arena") then
 					--> player is inside an arena
@@ -1647,4 +1648,38 @@ function _detalhes:FormatBackground (f)
 	f.__background:SetVertTile (true)
 	f.__background:SetHorizTile (true)
 	f.__background:SetAllPoints()
+end
+
+
+function Details.ShowCopyValueFrame(textToShow)
+	if (not DetailsCopyValueFrame) then
+		local frame = CreateFrame("frame", "DetailsCopyValueFrame", UIParent)
+		frame:SetSize(160, 20)
+		frame:SetPoint("center", UIParent, "center", 0, 0)
+		DetailsFramework:ApplyStandardBackdrop(frame)
+		tinsert(UISpecialFrames, "DetailsCopyValueFrame")
+
+		frame.editBox = CreateFrame("editbox", nil, frame)
+		frame.editBox:SetPoint ("topleft", frame, "topleft")
+		frame.editBox:SetAutoFocus(false)
+		frame.editBox:SetFontObject("GameFontHighlightSmall")
+		frame.editBox:SetAllPoints()
+		frame.editBox:SetJustifyH("center")
+		frame.editBox:EnableMouse(true)
+
+		frame.editBox:SetScript("OnEnterPressed", function()
+			frame.editBox:ClearFocus()
+			frame:Hide()
+		end)
+
+		frame.editBox:SetScript("OnEscapePressed", function()
+			frame.editBox:ClearFocus()
+			frame:Hide()
+		end)
+	end
+
+	DetailsCopyValueFrame:Show()
+	DetailsCopyValueFrame.editBox:SetText(textToShow or "")
+	DetailsCopyValueFrame.editBox:SetFocus()
+	DetailsCopyValueFrame.editBox:HighlightText()
 end
